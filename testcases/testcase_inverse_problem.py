@@ -37,18 +37,13 @@ PARAMETERS = MappingProxyType(
         "rbc_impact_option": 3,  # 1: No RBCs (hd=0) - makes only sense if tube_haematocrit_option:1 or ht=0
                                  # 2: Laws by Pries, Neuhaus, Gaehtgens (1992)
                                  # 3: Laws by Pries and Secomb (2005)
-        "solver_option": 1,  # 1: Direct solver
+        "solver_option": 3,  # 1: Direct solver
                              # 2: PyAMG solver
+                             # 3: Pardiso solver
         "iterative_routine": 1,  # 1: Forward problem
                                  # 2: Iterative routine (ours)
                                  # 3: Iterative routine (Berg Thesis) [https://oatao.univ-toulouse.fr/25471/1/Berg_Maxime.pdf]
                                  # 4: Iterative routine (Rasmussen et al. 2018) [https://onlinelibrary.wiley.com/doi/10.1111/micc.12445]
-
-        # Elastic vessel - vascular properties (tube law) - Only required for distensibility and autoregulation models
-        "pressure_external": 0.,  # Constant external pressure
-        "read_vascular_properties_option": 1,  # 1: Do not read anything
-        "tube_law_ref_state_option": 1,  # 1: No compute of reference diameters (d_ref)
-        "csv_path_vascular_properties": "not_needed",  # Young's Modulus and Wall Thickness for all vessels
 
         # Blood properties
         "ht_constant": 0.3,
@@ -73,10 +68,10 @@ PARAMETERS = MappingProxyType(
         "csv_path_vertex_data": "data/network/node_data.csv",
         "csv_path_edge_data": "data/network/edge_data.csv",
         "csv_path_boundary_data": "data/network/boundary_node_data.csv",
-        "csv_diameter": "D", "csv_length": "L",
-        "csv_edgelist_v1": "n1", "csv_edgelist_v2": "n2",
-        "csv_coord_x": "x", "csv_coord_y": "y", "csv_coord_z": "z",
-        "csv_boundary_vs": "nodeId", "csv_boundary_type": "boundaryType", "csv_boundary_value": "boundaryValue",
+        "csv_diameter": "diameter", "csv_length": "length",
+        "csv_edgelist_v1": "source", "csv_edgelist_v2": "target",
+        "csv_coord_x": "X", "csv_coord_y": "Y", "csv_coord_z": "Z",
+        "csv_boundary_vs": "vx_id_of_boundary", "csv_boundary_type": "boundary_type", "csv_boundary_value": "boundary_value",
 
         # Import network from igraph option - Only required for "read_network_option": 3
         "pkl_path_igraph": "data/network/network_graph.pkl",
@@ -98,8 +93,9 @@ PARAMETERS = MappingProxyType(
                                # 2: Relative transmissibility to baseline (alpha = T/T_base)
         "parameter_restriction": 2,  # 1: No restriction of parameter values (alpha_prime = alpha)
                                      # 2: Restriction of parameter by a +/- tolerance to baseline
-        "inverse_model_solver": 1,  # 1: Direct solver
+        "inverse_model_solver": 3,  # 1: Direct solver
                                     # 2: PyAMG solver
+                                    # 3: Pardiso solver
 
         # Filepath to prescribe target values / constraints on edges
         "csv_path_edge_target_data": "data/inverse_model/edge_target.csv",
@@ -124,7 +120,7 @@ setup_simulation = setup.SetupSimulation()
 
 # Initialise objects related to simulate blood flow without RBC tracking.
 imp_readnetwork, imp_writenetwork, imp_ht, imp_hd, imp_transmiss, imp_velocity, imp_buildsystem, \
-    imp_solver, imp_iterative, imp_balance, imp_read_vascular_properties, imp_tube_law_ref_state = setup_simulation.setup_bloodflow_model(PARAMETERS)
+    imp_solver, imp_iterative, imp_balance = setup_simulation.setup_bloodflow_model(PARAMETERS)
 
 # Initialise objects related to the inverse model.
 imp_readtargetvalues, imp_readparameters, imp_adjoint_parameter, imp_adjoint_solver, \
@@ -132,8 +128,8 @@ imp_readtargetvalues, imp_readparameters, imp_adjoint_parameter, imp_adjoint_sol
 
 # Initialise flownetwork and inverse model objects
 flow_network = FlowNetwork(imp_readnetwork, imp_writenetwork, imp_ht, imp_hd, imp_transmiss, imp_buildsystem,
-                           imp_solver, imp_velocity, imp_iterative, imp_balance, imp_read_vascular_properties,
-                           imp_tube_law_ref_state, PARAMETERS)
+                           imp_solver, imp_velocity, imp_iterative, imp_balance, PARAMETERS)
+
 inverse_model = InverseModel(flow_network, imp_readtargetvalues, imp_readparameters, imp_adjoint_parameter,
                              imp_adjoint_solver, imp_alpha_mapping, PARAMETERS)
 
