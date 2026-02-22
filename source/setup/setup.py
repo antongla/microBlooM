@@ -2,6 +2,11 @@ from abc import ABC, abstractmethod
 from types import MappingProxyType
 import source.fileio.read_network as read_network
 import source.fileio.write_network as write_network
+import source.fileio.read_target_values as read_target_values
+import source.fileio.read_parameters as read_parameters
+import source.fileio.read_vascular_properties as read_vascular_properties
+import source.inverseproblemmodules.adjoint_method_implementations as adjoint_method_parameters
+import source.fileio.read_autoregulation_parameters as read_autoregulation_parameters
 import source.bloodflowmodel.tube_haematocrit as tube_haematocrit
 import source.bloodflowmodel.discharge_haematocrit as discharge_haematocrit
 import source.bloodflowmodel.transmissibility as transmissibility
@@ -10,12 +15,13 @@ import source.bloodflowmodel.build_system as build_system
 import source.bloodflowmodel.rbc_velocity as rbc_velocity
 import source.bloodflowmodel.iterative as iterative_routine
 import source.bloodflowmodel.flow_balance as flow_balance
-import source.fileio.read_target_values as read_target_values
-import source.fileio.read_parameters as read_parameters
-import source.inverseproblemmodules.adjoint_method_implementations as adjoint_method_parameters
 import source.inverseproblemmodules.adjoint_method_solver as adjoint_method_solver
 import source.inverseproblemmodules.alpha_restriction as alpha_mapping
 import source.fileio.read_distensibility_parameters as read_distensibility_parameters
+import source.distensibilitymodules.initialise_tube_law as initialise_tube_law
+import source.distensibilitymodules.update_diam_distensibility_law as update_diam_distensibility_law
+import source.autoregulationmodules.initialise_autoregulation_model as initialise_autoregulation_model
+import source.autoregulationmodules.update_diam_autoregulation_model as update_diam_autoregulation_model
 import sys
 
 
@@ -34,6 +40,18 @@ class Setup(ABC):
     def setup_inverse_model(self, PARAMETERS):
         """
         Abstract method to set up the inverse model
+        """
+
+    @abstractmethod
+    def setup_distensibility_model(self, PARAMETERS):
+        """
+        Abstract method to set up the distensibility model
+        """
+
+    @abstractmethod
+    def setup_autoregulation_model(self, PARAMETERS):
+        """
+        Abstract method to set up the autoregulation model
         """
 
 
@@ -127,10 +145,33 @@ class SetupSimulation(Setup):
                 print("No Iterative Method selected: Default Selection")
                 imp_iterative = iterative_routine.IterativeRoutineNone(PARAMETERS)  # No iterative procedure
 
+        # Initialise the class to read the vascular properties
+        match PARAMETERS["read_vascular_properties_option"]:
+            case 1:  # Do not read anything
+                imp_read_vascular_properties = read_vascular_properties.ReadVascularPropertiesNothing(PARAMETERS)
+            case 2:  # Read vascular properties from a csv file
+                imp_read_vascular_properties = read_vascular_properties.ReadVascularPropertiesFromFile(PARAMETERS)
+            case _:
+                sys.exit("Error: Choose valid option to import the vascular properties (read_vascular_properties_option)")
+
+        # Initialise the class for the tube law of elastic vessels
+        match PARAMETERS["tube_law_ref_state_option"]:
+            case 1:  # Do not define the reference state of the tube law
+                imp_tube_law_ref_state = initialise_tube_law.TubeLawInitialisionNothing(PARAMETERS)
+            case 2:  # Define the reference state of the tube law, linearised. p_ext = p_base, d_ref = d_base
+                imp_tube_law_ref_state = initialise_tube_law.TubeLawPassiveReferenceBaselinePressure(PARAMETERS)
+            case 3:  # Define the reference state of the tube law, linearised. p_ext=0, d_ref computed based on Sherwin et al. (2003).
+                imp_tube_law_ref_state = initialise_tube_law.TubeLawPassiveReferenceConstantExternalPressureSherwin(PARAMETERS)
+            case 4:  # Define the reference state of the tube law, linearised. p_ext=0, d_ref computed based on Payne et al. (2023).
+                imp_tube_law_ref_state = initialise_tube_law.TubeLawPassiveReferenceConstantExternalPressurePayne(PARAMETERS)
+            case _:
+                sys.exit("Error: Choose valid option to define the reference state (tube_law_ref_state_option)")
+
         # Flow Balance
         imp_balance = flow_balance.FlowBalanceClass(PARAMETERS)
 
-        return imp_read, imp_write, imp_ht, imp_hd, imp_transmiss, imp_velocity, imp_buildsystem, imp_solver, imp_iterative, imp_balance
+        return imp_read, imp_write, imp_ht, imp_hd, imp_transmiss, imp_velocity, imp_buildsystem, imp_solver, \
+            imp_iterative, imp_balance, imp_read_vascular_properties, imp_tube_law_ref_state
 
     def setup_inverse_model(self, PARAMETERS):
         """
@@ -171,8 +212,72 @@ class SetupSimulation(Setup):
             case 2:
                 imp_adjointsolver = adjoint_method_solver.AdjointMethodSolverPyAMG(PARAMETERS)
             case 3:
-                imp_adjointsolver = adjoint_method_solver.AdjointMethodSolverSparsePardiso(PARAMETERS)            
+                imp_adjointsolver = adjoint_method_solver.AdjointMethodSolverSparsePardiso(PARAMETERS)
             case _:
                 sys.exit("Error: Choose valid option for the solver of the inverse model (inverse_model_solver)")
 
         return imp_readtargetvalues, imp_readparameters, imp_adjointparameter, imp_adjointsolver, imp_alphamapping
+
+    def setup_distensibility_model(self, PARAMETERS):
+        """
+        Set up the distensibility model and returns various implementations of the distensibility model
+        :param PARAMETERS: Global simulation parameters stored in an immutable dictionary.
+        :type PARAMETERS: MappingProxyType (basically an immutable dictionary).
+        :returns: the implementation objects. Error if invalid option is chosen.
+        """
+
+        # Initialise the class to read the parameters related to the distensibility of blood vessels
+        match PARAMETERS["read_dist_parameters_option"]:
+            case 1:  # Do not read anything
+                imp_read_dist_parameters = read_distensibility_parameters.ReadDistensibilityParametersNothing(PARAMETERS)
+            case 2:  # Read distensibility porameters from csv file
+                imp_read_dist_parameters = read_distensibility_parameters.ReadDistensibilityParametersFromFile(PARAMETERS)
+            case _:
+                sys.exit("Error: Choose valid option to read distensibility parameters (read_dist_parameters_option)")
+
+        # Initialise the class to select the pressure-area relationship related to the distensibility of blood vessels
+        match PARAMETERS["dist_pres_area_relation_option"]:
+            case 1:  # No update of diameters due to vessel distensibility
+                imp_dist_pres_area_relation = update_diam_distensibility_law.DistensibilityLawUpdateNothing(PARAMETERS)
+            case 2:  # Update of diameters based on a non-linear p-A ralation proposed by Sherwin et al. (2003).
+                imp_dist_pres_area_relation = update_diam_distensibility_law.DistensibilityLawUpdatePassiveSherwin(PARAMETERS)
+            case _:
+                sys.exit("Error: Choose valid option to define the p-A ralation (dist_pres_area_relation_option)")
+
+        return imp_read_dist_parameters, imp_dist_pres_area_relation
+
+    def setup_autoregulation_model(self, PARAMETERS):
+        """
+        Set up the autoregulation model and returns various implementations of the autoregulation model
+        :param PARAMETERS: Global simulation parameters stored in an immutable dictionary.
+        :type PARAMETERS: MappingProxyType (basically an immutable dictionary).
+        :returns: the implementation objects. Error if invalid option is chosen.
+        """
+
+        # Initialise the class to read the parameters related to the autoregulatory blood vessels
+        match PARAMETERS["read_auto_parameters_option"]:
+            case 1:  # Do not read anything
+                imp_read_auto_parameters = read_autoregulation_parameters.ReadAutoregulationParametersNothing(PARAMETERS)
+            case 2:  # Read autoregulation parameters from csv file
+                imp_read_auto_parameters = read_autoregulation_parameters.ReadAutoregulationParametersFromFile(PARAMETERS)
+            case _:
+                sys.exit("Error: Choose valid option to read autoregulation parameters (read_auto_parameters_option)")
+
+        # Initialise the class to compute the compliance at the baseline
+        match PARAMETERS["base_compliance_relation_option"]:
+            case 1:  # Do not specify compliance relation
+                imp_auto_baseline = initialise_autoregulation_model.AutoregulationModelInitialiseNothing(PARAMETERS)
+            case 2:  # Compute the compliance at the baseline using the definition C = dV/dPt based on Sherwin et al. (2003)
+                imp_auto_baseline = initialise_autoregulation_model.AutoregulationModelInitialiseOurRelation(PARAMETERS)
+            case _:
+                sys.exit("Error: Choose valid option to specify compliance relation (base_compliance_relation_option)")
+
+        match PARAMETERS["auto_feedback_model_option"]:
+            case 1:  # Do not specify compliance relation
+                imp_auto_feedback_model = update_diam_autoregulation_model.AutoregulationModelUpdateNothing(PARAMETERS)
+            case 2:  # Feedback model: Update diameters by adjusting the autoregulation model proposed by Payne et al. 2023
+                imp_auto_feedback_model = update_diam_autoregulation_model.AutoregulationModelOurApproach(PARAMETERS)
+            case _:
+                sys.exit("Error: Choose valid option to specify the compliance feedback model (auto_feedback_model_option)")
+
+        return imp_read_auto_parameters, imp_auto_baseline, imp_auto_feedback_model
