@@ -29,6 +29,7 @@ PARAMETERS = MappingProxyType(
                                  # 3: Laws by Pries and Secomb (2005)
         "solver_option": 1,  # 1: Direct solver
                              # 2: PyAMG solver
+                             # 3: Pardiso solver
         "iterative_routine": 1,  # 1: Forward problem
                                  # 2: Iterative routine (ours)
                                  # 3: Iterative routine (Berg Thesis) [https://oatao.univ-toulouse.fr/25471/1/Berg_Maxime.pdf]

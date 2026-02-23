@@ -35,6 +35,7 @@ Please find a more detailed description for each test case in the corresponding 
 - igraph 0.10.2
 - Pandas 1.5.1
 - Pyamg 4.2.3
+- pypardiso 0.4.7
 
 ## Installation
 

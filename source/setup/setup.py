@@ -130,6 +130,9 @@ class SetupSimulation(Setup):
             case 2:
                 imp_buildsystem = build_system.BuildSystemSparseCsc(PARAMETERS)  # Fast approach to build the system
                 imp_solver = pressure_flow_solver.PressureFlowSolverPyAMG(PARAMETERS)  # Iterative solver
+            case 3:
+                imp_buildsystem = build_system.BuildSystemSparseCsc(PARAMETERS)  # Fast approach to build the system
+                imp_solver = pressure_flow_solver.PressureFlowSolverSparsePardiso(PARAMETERS)  # Pardiso solver
             case _:
                 sys.exit("Error: Choose valid option for the solver (solver_option)")
 
@@ -208,6 +211,8 @@ class SetupSimulation(Setup):
                 imp_adjointsolver = adjoint_method_solver.AdjointMethodSolverSparseDirect(PARAMETERS)
             case 2:
                 imp_adjointsolver = adjoint_method_solver.AdjointMethodSolverPyAMG(PARAMETERS)
+            case 3:
+                imp_adjointsolver = adjoint_method_solver.AdjointMethodSolverSparsePardiso(PARAMETERS)
             case _:
                 sys.exit("Error: Choose valid option for the solver of the inverse model (inverse_model_solver)")
 
