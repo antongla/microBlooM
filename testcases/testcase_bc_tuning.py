@@ -38,6 +38,7 @@ PARAMETERS = MappingProxyType(
                                  # 3: Laws by Pries and Secomb (2005)
         "solver_option": 1,  # 1: Direct solver
                              # 2: PyAMG solver
+                             # 3: Pardiso solver
         "iterative_routine": 1,  # 1: Forward problem
                                  # 2: Iterative routine (ours)
                                  # 3: Iterative routine (Berg Thesis) [https://oatao.univ-toulouse.fr/25471/1/Berg_Maxime.pdf]
@@ -99,8 +100,9 @@ PARAMETERS = MappingProxyType(
                                 # 11: Pressure boundary condition values (alpha = p_0)
         "parameter_restriction": 1,  # 1: No restriction of parameter values (alpha_prime = alpha)
                                      # 2: Restriction of parameter by a +/- tolerance to baseline
-        "inverse_model_solver": 1,  # Direct solver
+        "inverse_model_solver": 1,  # 1: Direct solver
                                     # 2: PyAMG solver
+                                    # 3: Pardiso solver
 
         # Filepath to prescribe target values / constraints on edges
         "csv_path_edge_target_data": "data/inverse_model/edge_target_BC_tuning.csv",

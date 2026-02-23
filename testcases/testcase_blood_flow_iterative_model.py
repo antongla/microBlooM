@@ -35,6 +35,7 @@ PARAMETERS = MappingProxyType(
                                     # 4: Laws for phase separation by Preis (1996)
         "solver_option": 1,     # 1: Direct solver
                                 # 2: PyAMG solver visual
+                                # 3: Pardiso solver
                                 # ...: other solvers
         "iterative_routine": 2,     # 1: Forward problem
                                     # 2: Iterative routine (ours)
