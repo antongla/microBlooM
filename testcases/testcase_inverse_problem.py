@@ -37,7 +37,7 @@ PARAMETERS = MappingProxyType(
         "rbc_impact_option": 3,  # 1: No RBCs (hd=0) - makes only sense if tube_haematocrit_option:1 or ht=0
                                  # 2: Laws by Pries, Neuhaus, Gaehtgens (1992)
                                  # 3: Laws by Pries and Secomb (2005)
-        "solver_option": 3,  # 1: Direct solver
+        "solver_option": 1,  # 1: Direct solver
                              # 2: PyAMG solver
                              # 3: Pardiso solver
         "iterative_routine": 1,  # 1: Forward problem
@@ -99,7 +99,7 @@ PARAMETERS = MappingProxyType(
                                # 2: Relative transmissibility to baseline (alpha = T/T_base)
         "parameter_restriction": 2,  # 1: No restriction of parameter values (alpha_prime = alpha)
                                      # 2: Restriction of parameter by a +/- tolerance to baseline
-        "inverse_model_solver": 3,  # 1: Direct solver
+        "inverse_model_solver": 1,  # 1: Direct solver
                                     # 2: PyAMG solver
                                     # 3: Pardiso solver
 
