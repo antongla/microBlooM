@@ -27,7 +27,7 @@ PARAMETERS = MappingProxyType(
         "rbc_impact_option": 3,  # 1: No RBCs (hd=0) - makes only sense if tube_haematocrit_option:1 or ht=0
                                  # 2: Laws by Pries, Neuhaus, Gaehtgens (1992)
                                  # 3: Laws by Pries and Secomb (2005)
-        "solver_option": 3,  # 1: Direct solver
+        "solver_option": 1,  # 1: Direct solver
                              # 2: PyAMG solver
                              # 3: Pardiso solver
         "iterative_routine": 1,  # 1: Forward problem
